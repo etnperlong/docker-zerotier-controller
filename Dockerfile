@@ -4,6 +4,7 @@ ENV NODE_OPTIONS=--openssl-legacy-provider
 ENV NODE_VERSION=19.x
 ENV ZEROTIER_ONE_VERSION=1.10.2
 ENV LIBPQXX_VERSION=7.6.1
+ENV NLOHMANN_JSON_VERSION=3.11.2
 
 ENV PATCH_ALLOW=0
     
@@ -14,7 +15,8 @@ RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-* && \
 RUN curl --silent --location https://dl.yarnpkg.com/rpm/yarn.repo -o /etc/yum.repos.d/yarn.repo && \
     rpm --import https://dl.yarnpkg.com/rpm/pubkey.gpg && \
     curl -fsSL https://rpm.nodesource.com/setup_${NODE_VERSION} | bash - && \
-    dnf install -y nodejs yarn python3 wget git bash jq postgresql-devel curl gcc-c++ glibc-headers tar make diffutils patch cargo openssl-devel
+    dnf install -y nodejs yarn python3 wget git bash jq postgresql-devel curl gcc-c++ glibc-headers tar make diffutils patch cargo openssl-devel && \
+    mkdir /usr/include/nlohmann/ && cd /usr/include/nlohmann/ && wget https://github.com/nlohmann/json/releases/download/v${NLOHMANN_JSON_VERSION}/json.hpp
 
 WORKDIR /src
 
