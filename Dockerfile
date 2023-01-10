@@ -1,13 +1,14 @@
 FROM ubuntu:22.04 AS build-stage
 
 ENV NODE_OPTIONS=--openssl-legacy-provider
-ENV NODE_VERSION=19.x
+ENV NODE_VERSION=18.x
 ENV ZEROTIER_ONE_VERSION=1.10.2
 ENV LIBPQXX_VERSION=7.6.1
 ENV NLOHMANN_JSON_VERSION=3.11.2
 
 RUN apt update && \    
     apt -y install \
+        gnupg \
         build-essential \
         pkg-config \
         bash \
@@ -26,10 +27,10 @@ RUN apt update && \
         python3 \
         wget \
         jq \
-        postgresql-server-dev-12 && \
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    apt update && \
-    apt -y install nodejs yarn && \
+        postgresql-server-dev-14 && \
+    curl -sL https://deb.nodesource.com/setup_${NODE_VERSION} | bash - && \
+    corepack enable && \
+    corepack prepare yarn@stable --activate && \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
     mkdir /usr/include/nlohmann/ && cd /usr/include/nlohmann/ && wget https://github.com/nlohmann/json/releases/download/v${NLOHMANN_JSON_VERSION}/json.hpp
 
@@ -96,9 +97,9 @@ COPY --from=build-stage /src/ZeroTierOne/attic/world/world.bin /app/config/world
 COPY --from=build-stage /src/config/world.c /app/config/world.c
 
 RUN apt update && \
-    apt -y install curl && \
+    apt -y install curl gnupg && \
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    apt -y install nodejs yarn postgresql-12 libjemalloc2 libpq5 wget jq && \
+    apt -y install nodejs yarn postgresql-14 libjemalloc2 libpq5 wget jq && \
     mkdir -p /var/lib/zerotier-one/ && \
     ln -s /app/config/authtoken.secret /var/lib/zerotier-one/authtoken.secret
 
