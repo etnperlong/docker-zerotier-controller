@@ -36,6 +36,9 @@ RUN apt update && \
     mkdir /usr/include/nlohmann/ && cd /usr/include/nlohmann/ && wget https://github.com/nlohmann/json/releases/download/v${NLOHMANN_JSON_VERSION}/json.hpp
 
 # Prepaire Environment
+
+WORKDIR /src
+
 COPY ./patch /src/patch
 COPY ./config /src/config
 
