@@ -1,8 +1,8 @@
 FROM centos:8 as build-stage
 
 ENV NODE_OPTIONS=--openssl-legacy-provider
-ENV NODE_VERSION=17.x
-ENV ZEROTIER_ONE_VERSION=1.8.7
+ENV NODE_VERSION=19.x
+ENV ZEROTIER_ONE_VERSION=1.10.2
 ENV LIBPQXX_VERSION=7.6.1
 
 ENV PATCH_ALLOW=0
@@ -59,7 +59,6 @@ RUN ZERO_UI_VERSION=`curl --silent "https://api.github.com/repos/dec0dOS/zero-ui
     rm -rf /tmp/zero-ui.tar.gz && \
     cd /src/zero-ui && \
     yarn install && \
-    yarn installDeps && \
     yarn build
 
 FROM centos:8
