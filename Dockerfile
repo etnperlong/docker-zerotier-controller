@@ -102,8 +102,10 @@ COPY --from=build-stage /src/config/world.c /app/config/world.c
 
 RUN apt update && \
     apt -y install curl gnupg && \
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    apt -y install nodejs yarn postgresql-14 libjemalloc2 libpq5 wget jq && \
+    curl -sL https://deb.nodesource.com/setup_${NODE_VERSION} | bash - && \
+    curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | tee /usr/share/keyrings/yarnkey.gpg >/dev/null && \
+    echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+    apt update && apt -y install nodejs yarn postgresql-14 libjemalloc2 libpq5 wget jq && \
     mkdir -p /var/lib/zerotier-one/ && \
     ln -s /app/config/authtoken.secret /var/lib/zerotier-one/authtoken.secret
 
