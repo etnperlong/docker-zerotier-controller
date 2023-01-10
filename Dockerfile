@@ -29,8 +29,9 @@ RUN apt update && \
         jq \
         postgresql-server-dev-14 && \
     curl -sL https://deb.nodesource.com/setup_${NODE_VERSION} | bash - && \
-    corepack enable && \
-    corepack prepare yarn@stable --activate && \
+    curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | tee /usr/share/keyrings/yarnkey.gpg >/dev/null && \
+    echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+    apt update && apt install -y nodejs yarn && \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
     mkdir /usr/include/nlohmann/ && cd /usr/include/nlohmann/ && wget https://github.com/nlohmann/json/releases/download/v${NLOHMANN_JSON_VERSION}/json.hpp
 
