@@ -83,6 +83,8 @@ RUN ZERO_UI_VERSION=`curl --silent "https://api.github.com/repos/dec0dOS/zero-ui
 
 FROM ubuntu:22.04 AS dist
 
+ENV NODE_VERSION=18.x
+
 WORKDIR /app/ZeroTierOne
 
 # libpqxx
@@ -105,7 +107,7 @@ RUN apt update && \
     curl -sL https://deb.nodesource.com/setup_${NODE_VERSION} | bash - && \
     curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | tee /usr/share/keyrings/yarnkey.gpg >/dev/null && \
     echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-    apt update && apt -y install nodejs yarn postgresql-14 libjemalloc2 libpq5 wget jq && \
+    apt update && apt -y install nodejs yarn postgresql-client postgresql-client-common libjemalloc2 libpq5 curl binutils linux-tools-gke perf-tools-unstable google-perftools wget jq && \
     mkdir -p /var/lib/zerotier-one/ && \
     ln -s /app/config/authtoken.secret /var/lib/zerotier-one/authtoken.secret
 
