@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS build-stage
+FROM centos:8 as build-stage
 
 ENV NODE_OPTIONS=--openssl-legacy-provider
 ENV NODE_VERSION=19.x
@@ -6,32 +6,20 @@ ENV ZEROTIER_ONE_VERSION=1.10.2
 ENV LIBPQXX_VERSION=7.6.1
 ENV NLOHMANN_JSON_VERSION=3.11.2
 
-RUN apt update && \    
-    apt -y install \
-        build-essential \
-        pkg-config \
-        bash \
-        clang \
-        libjemalloc2 \
-        libjemalloc-dev \
-        libpq5 \
-        libpq-dev \
-        openssl \
-        libssl-dev \
-        postgresql-client \
-        postgresql-client-common \
-        curl \
-        google-perftools \
-        libgoogle-perftools-dev \
-        python3 \
-        wget \
-        jq \
-        postgresql-server-dev-12 && \
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    apt update && \
-    apt -y install nodejs yarn && \
+ENV PATCH_ALLOW=0
+    
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://linuxsoft.cern.ch/centos-vault|g' /etc/yum.repos.d/CentOS-Linux-* && \
+    echo -e 'deltarpm=0\ntimeout=300\nminrate=100' >> /etc/yum.conf
+
+RUN curl --silent --location https://dl.yarnpkg.com/rpm/yarn.repo -o /etc/yum.repos.d/yarn.repo && \
+    rpm --import https://dl.yarnpkg.com/rpm/pubkey.gpg && \
+    curl -fsSL https://rpm.nodesource.com/setup_${NODE_VERSION} | bash - && \
+    dnf install -y nodejs yarn python3 wget git bash jq postgresql-devel curl gcc-c++ glibc-headers tar make diffutils patch openssl-devel && \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
     mkdir /usr/include/nlohmann/ && cd /usr/include/nlohmann/ && wget https://github.com/nlohmann/json/releases/download/v${NLOHMANN_JSON_VERSION}/json.hpp
+
+WORKDIR /src
 
 # Prepaire Environment
 COPY ./patch /src/patch
@@ -76,7 +64,7 @@ RUN ZERO_UI_VERSION=`curl --silent "https://api.github.com/repos/dec0dOS/zero-ui
     yarn install && \
     yarn build
 
-FROM ubuntu:22.04 AS dist
+FROM centos:8
 
 WORKDIR /app/ZeroTierOne
 
@@ -95,12 +83,28 @@ COPY --from=build-stage /src/ZeroTierOne/attic/world/mkworld /app/ZeroTierOne/mk
 COPY --from=build-stage /src/ZeroTierOne/attic/world/world.bin /app/config/world.bin
 COPY --from=build-stage /src/config/world.c /app/config/world.c
 
-RUN apt update && \
-    apt -y install curl && \
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    apt -y install nodejs yarn postgresql-12 libjemalloc2 libpq5 wget jq && \
+# Envirment
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://linuxsoft.cern.ch/centos-vault|g' /etc/yum.repos.d/CentOS-Linux-* && \
+    echo -e 'deltarpm=0\ntimeout=300\nminrate=100' >> /etc/yum.conf
+
+RUN curl --silent --location https://dl.yarnpkg.com/rpm/yarn.repo -o /etc/yum.repos.d/yarn.repo && \
+    rpm --import https://dl.yarnpkg.com/rpm/pubkey.gpg && \
+    curl -fsSL https://rpm.nodesource.com/setup_${NODE_VERSION} | bash - && \
+    dnf update -y && \
+    dnf module enable -y postgresql:10 && \
+    dnf install -y nodejs yarn postgresql-server libpq wget git bash jq postgresql-devel tar gcc-c++ make xz openssl && \
     mkdir -p /var/lib/zerotier-one/ && \
     ln -s /app/config/authtoken.secret /var/lib/zerotier-one/authtoken.secret
+
+# Installing s6-overlay
+RUN S6_OVERLAY_VERSION=`curl --silent "https://api.github.com/repos/just-containers/s6-overlay/releases/latest" | jq -r .tag_name | sed 's/^v//'` && \
+    cd /tmp && \
+    curl --silent --location https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz --output s6-overlay-noarch-${S6_OVERLAY_VERSION}.tar.xz && \
+    curl --silent --location https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-x86_64.tar.xz --output s6-overlay-x86_64-${S6_OVERLAY_VERSION}.tar.xz && \
+    tar -C / -Jxpf /tmp/s6-overlay-noarch-${S6_OVERLAY_VERSION}.tar.xz && \
+    tar -C / -Jxpf /tmp/s6-overlay-x86_64-${S6_OVERLAY_VERSION}.tar.xz && \
+    rm -f /tmp/*.xz
 
 # Frontend @ zero-ui
 COPY --from=build-stage /src/zero-ui/frontend/build /app/frontend/build/
